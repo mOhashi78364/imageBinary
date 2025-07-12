@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>画像バイナリエディタ</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    #editor {
+      max-height: 240px; /* 約10行分の高さ */
+      overflow-y: auto;
+      white-space: pre;
+      font-family: monospace;
+      border: 1px solid #ccc;
+      padding: 5px;
+      margin-bottom: 1rem;
+      line-height: 1.5em;
+    }
+    .byte {
+      display: inline-block;
+      width: 2ch;
+      margin-right: 2px;
+    }
+    .modified {
+      background-color: yellow;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 1rem;
+    }
+    button {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>画像の16進数表示</h1>
+  <p>画像を16進数で編集して再構成します。</p>
+  <div id="editor" contenteditable="true"></div>
+  <button onclick="renderImage()">画像を表示</button>
+  <button onclick="resetEditor()">初期状態に戻す</button>
+  <div id="result"></div>
+
+  <script>
+    let originalBytes;
+    let backupHexStrings = [];
+
+    async function loadImageAsBinary() {
+      const res = await fetch('images/original.jpeg');
+      const blob = await res.blob();
+      const buffer = await blob.arrayBuffer();
+      originalBytes = new Uint8Array(buffer);
+      resetEditor(); // 初期表示
+    }
+
+    function displayEditor(bytes) {
+      const editor = document.getElementById('editor');
+      editor.innerHTML = '';
+      const lines = 100;
+      const bytesPerLine = 16;
+      backupHexStrings = [];
+
+      for (let i = 0; i < Math.min(lines * bytesPerLine, bytes.length); i++) {
+        const span = document.createElement('span');
+        span.className = 'byte';
+        const hex = bytes[i].toString(16).padStart(2, '0');
+        span.textContent = hex;
+        backupHexStrings.push(hex);
+        editor.appendChild(span);
+        if ((i + 1) % bytesPerLine === 0) {
+          editor.appendChild(document.createElement('br'));
+        }
+      }
+    }
+
+    function setupChangeTracking() {
+      const spans = document.querySelectorAll('.byte');
+      spans.forEach((span, i) => {
+        span.addEventListener('input', () => {
+          const newVal = span.textContent.trim().toLowerCase();
+          const origVal = backupHexStrings[i].toLowerCase();
+          if (newVal !== origVal) {
+            span.classList.add('modified');
+          } else {
+            span.classList.remove('modified');
+          }
+        });
+      });
+    }
+
+    function renderImage() {
+      const spans = document.querySelectorAll('.byte');
+      const modified = new Uint8Array(originalBytes);
+
+      spans.forEach((span, i) => {
+        const val = span.textContent.trim();
+        modified[i] = parseInt(val, 16) || 0;
+      });
+
+      const blob = new Blob([modified], { type: 'image/jpeg' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        document.getElementById('result').innerHTML = '';
+        document.getElementById('result').appendChild(img);
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => {
+        document.getElementById('result').innerHTML = '<p>ファイルが壊れていて画像が表示できません。</p>';
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }
+
+    function resetEditor() {
+      displayEditor(originalBytes);
+      setupChangeTracking();
+      document.getElementById('result').innerHTML = '';
+    }
+
+    loadImageAsBinary();
+  </script>
+</body>
+</html>
