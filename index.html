@@ -2,38 +2,59 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>画像バイナリエディタ</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      margin: 0;
+    }
+
     #editor {
-      max-height: 240px; /* 約10行分の高さ */
+      max-height: 240px; /* 約10行分 */
+      max-width: 52ch; /* 16バイト×3文字+余白 */
       overflow-y: auto;
+      overflow-x: auto;
       white-space: pre;
       font-family: monospace;
+      font-size: 14px;
+      line-height: 1.5em;
       border: 1px solid #ccc;
       padding: 5px;
       margin-bottom: 1rem;
-      line-height: 1.5em;
     }
+
     .byte {
       display: inline-block;
       width: 2ch;
       margin-right: 2px;
     }
+
     .modified {
       background-color: yellow;
     }
+
     img {
       max-width: 100%;
       margin-top: 1rem;
     }
+
     button {
       margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 600px) {
+      #editor {
+        font-size: 12px;
+        max-width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>画像の16進数表示</h1>
+  <h1>画像の16進数編集</h1>
   <p>画像を16進数で編集して再構成します。</p>
   <div id="editor" contenteditable="true"></div>
   <button onclick="renderImage()">画像を表示</button>
@@ -49,7 +70,7 @@
       const blob = await res.blob();
       const buffer = await blob.arrayBuffer();
       originalBytes = new Uint8Array(buffer);
-      resetEditor(); // 初期表示
+      resetEditor();
     }
 
     function displayEditor(bytes) {
